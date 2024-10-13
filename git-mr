@@ -1,0 +1,42 @@
+#!/bin/bash
+#
+# Creates a GitLab Merge Request (MR)
+#
+# Pushes the current branch to a same-named branch on origin, setting GitLab
+# push-options to create a merge request.
+#
+# The source branch will be set to be removed on merge, and if there is only
+# one commit, the MR's title and description will be set from the commit's
+# message. (Otherwise they are left unset, and you'll need to edit in the
+# GitLab UI.)
+
+set -ue
+
+# if only one commit in branch...
+if [ $(g log --oneline $(git defbranch).. | wc -l) == 1 ]; then
+    echo "Single commit mode: setting title and description"
+    # ...log only HEAD commit...
+    log="$(g log HEAD~..HEAD | grep '^    ' | sed -e 's:^    ::')"
+
+    # ...and extract the title..
+    title="$(printf "$log" | head -1)"
+
+    # ...and description.
+    #
+    # Replace `\n` with `\\n`, as push options cannot contain newlines, but
+    # GitLab will transform `\\n` back into a newline.
+    description="$(printf "$log" | awk 'NR > 2 {printf "%s\\n", $0}')"
+else
+    echo "Multi-commit mode: NOT setting title and description"
+    title=""
+    description=""
+fi
+
+BRANCH_NAME=$(git symbolic-ref --short HEAD)
+echo
+git push \
+    -o merge_request.create \
+    -o merge_request.remove_source_branch \
+    -u origin "$BRANCH_NAME:$BRANCH_NAME" \
+    ${title:+-o merge_request.title="$title"} \
+    ${description:+-o merge_request.description="$description"}
