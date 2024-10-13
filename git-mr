@@ -39,4 +39,6 @@ git push \
     -o merge_request.remove_source_branch \
     -u origin "$BRANCH_NAME:$BRANCH_NAME" \
     ${title:+-o merge_request.title="$title"} \
-    ${description:+-o merge_request.description="$description"}
+    ${description:+-o merge_request.description="$description"} \
+    "$@"
+
